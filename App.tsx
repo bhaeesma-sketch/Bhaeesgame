@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Screen, UserState } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -16,6 +16,8 @@ import { WalletConnectModal } from '@walletconnect/modal';
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.LANDING);
   const [showConnectModal, setShowConnectModal] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const [user, setUser] = useState<UserState>({
     credits: 0.00,
     streak: 0,
@@ -32,13 +34,35 @@ const App: React.FC = () => {
     provider: null
   });
 
-  // Project ID for WalletConnect V2 (Placeholder)
   const walletConnectProjectId = 'c49870877983636598c1955986950275'; 
   
   const wcModal = new WalletConnectModal({
     projectId: walletConnectProjectId,
     chains: ['eip155:1']
   });
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = (window.scrollY / totalHeight) * 100;
+      setScrollProgress(progress);
+      setShowBackToTop(window.scrollY > 400);
+
+      // Simple reveal logic
+      const reveals = document.querySelectorAll('.reveal-section');
+      reveals.forEach(el => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.85) {
+          el.classList.add('is-visible');
+        }
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Initial call
+    setTimeout(handleScroll, 100);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [currentScreen]);
 
   const handleNavigate = (screen: Screen) => {
     setCurrentScreen(screen);
@@ -57,7 +81,6 @@ const App: React.FC = () => {
       }));
       setShowConnectModal(false);
     } else {
-      // Simulation for non-TronLink environments if user insists
       const mockAddress = `T${Math.random().toString(16).slice(2, 34)}`;
       setUser(prev => ({
         ...prev,
@@ -67,20 +90,12 @@ const App: React.FC = () => {
         provider: 'tronlink'
       }));
       setShowConnectModal(false);
-      console.warn("TronLink not detected. Using simulated TRC20 address.");
     }
   };
 
   const connectWalletConnect = async () => {
     try {
-      // Using open() which triggers the modal to connect
       await wcModal.openModal();
-      
-      // Since this is a standalone modal in a demo environment, 
-      // we'll simulate a successful connection after the modal interaction.
-      // In a real app, you'd listen to the session_event.
-      
-      // Simulating connection result for this demo:
       const mockEthAddress = `0x${Math.random().toString(16).slice(2, 42)}`;
       setUser(prev => ({
         ...prev,
@@ -167,6 +182,9 @@ const App: React.FC = () => {
     <div className="flex flex-col min-h-screen bg-background-dark selection:bg-primary selection:text-white overflow-x-hidden">
       <TargetCursor targetSelector=".cursor-target" />
       
+      {/* Scroll Progress Bar */}
+      <div className="scroll-progress-bar" style={{ width: `${scrollProgress}%` }}></div>
+
       <Header 
         currentScreen={currentScreen} 
         onNavigate={handleNavigate} 
@@ -176,7 +194,7 @@ const App: React.FC = () => {
       />
       
       <main className="flex-grow pb-28 md:pb-12 pt-4">
-        <div className="max-w-[1800px] mx-auto transition-all duration-500 ease-in-out">
+        <div className="max-w-[1800px] mx-auto">
           {renderScreen()}
         </div>
       </main>
@@ -184,6 +202,14 @@ const App: React.FC = () => {
       <Footer onNavigate={handleNavigate} />
       
       <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
+
+      {/* Back to Top Terminal */}
+      <button 
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className={`fixed bottom-24 right-8 z-[70] size-14 rounded-xl bg-primary/10 border border-primary/40 backdrop-blur-xl flex items-center justify-center text-primary shadow-neon transition-all duration-500 cursor-target ${showBackToTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
+      >
+        <span className="material-symbols-outlined text-3xl animate-bounce">expand_less</span>
+      </button>
 
       <ConnectModal 
         isOpen={showConnectModal} 

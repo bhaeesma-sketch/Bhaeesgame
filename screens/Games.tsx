@@ -12,7 +12,7 @@ interface GamesProps {
 
 type ActiveGame = 'lobby' | 'dice' | 'slots' | 'mines' | 'plinko';
 
-const playSound = (type: 'win' | 'loss' | 'roll' | 'click' | 'plink' | 'jackpot') => {
+const playSound = (type: 'win' | 'loss' | 'roll' | 'click' | 'plink' | 'jackpot' | 'init') => {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     const ctx = new AudioCtx();
@@ -43,6 +43,12 @@ const playSound = (type: 'win' | 'loss' | 'roll' | 'click' | 'plink' | 'jackpot'
       osc.frequency.exponentialRampToValueAtTime(1760, now + 0.8);
       gain.gain.setValueAtTime(0.1, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+    } else if (type === 'init') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.linearRampToValueAtTime(400, now + 0.1);
+      gain.gain.setValueAtTime(0.02, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
     } else {
       osc.frequency.setValueAtTime(200, now);
       gain.gain.setValueAtTime(0.05, now);
@@ -58,6 +64,32 @@ const playSound = (type: 'win' | 'loss' | 'roll' | 'click' | 'plink' | 'jackpot'
 
 const Games: React.FC<GamesProps> = ({ user, onUpdateBalance }) => {
   const [activeGame, setActiveGame] = useState<ActiveGame>('lobby');
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+
+  const handleSelectGame = (game: ActiveGame) => {
+    setIsInitializing(true);
+    setLoadingProgress(0);
+    playSound('init');
+    
+    // Simulate high-fidelity loading
+    const duration = 2000;
+    const startTime = Date.now();
+    
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / duration) * 100, 100);
+      setLoadingProgress(progress);
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setActiveGame(game);
+          setIsInitializing(false);
+        }, 300);
+      }
+    }, 50);
+  };
 
   const handleBet = (gameName: string, bet: number, profit: number) => {
     if (profit > (bet * 50)) playSound('jackpot');
@@ -74,8 +106,10 @@ const Games: React.FC<GamesProps> = ({ user, onUpdateBalance }) => {
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none"></div>
 
       <div className="relative z-10 max-w-[1700px] mx-auto px-4 lg:px-8 py-10">
-        {activeGame === 'lobby' ? (
-          <GameLobby onSelect={setActiveGame} />
+        {isInitializing ? (
+          <GameLoader game={activeGame === 'lobby' ? 'dice' : activeGame} progress={loadingProgress} />
+        ) : activeGame === 'lobby' ? (
+          <GameLobby onSelect={handleSelectGame} />
         ) : (
           <div className="animate-fade-in space-y-8">
             <div className="flex items-center justify-between">
@@ -102,6 +136,76 @@ const Games: React.FC<GamesProps> = ({ user, onUpdateBalance }) => {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+const GameLoader = ({ game, progress }: { game: ActiveGame; progress: number }) => {
+  const themedContent = {
+    dice: { color: 'text-primary', label: 'Entropy Synthesis', icon: 'casino', sub: 'Initializing VRF Handshake...' },
+    slots: { color: 'text-secondary', label: 'Segment Calibration', icon: 'cyclone', sub: 'Linking RNG Nodes...' },
+    mines: { color: 'text-gold', label: 'Hazard Mapping', icon: 'grid_view', sub: 'Scanning Cryptographic Grid...' },
+    plinko: { color: 'text-accent-pink', label: 'Trajectory Simulation', icon: 'blur_on', sub: 'Calibrating Gravity Field...' },
+    lobby: { color: 'text-white', label: 'System Loading', icon: 'hub', sub: 'Accessing Terminal...' }
+  }[game] || { color: 'text-white', label: 'Initializing', icon: 'hub', sub: 'Please Wait...' };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-12 animate-fade-in">
+      <div className="relative group">
+        <div className={`absolute inset-0 ${themedContent.color.replace('text-', 'bg-')}/20 blur-3xl rounded-full scale-150 animate-pulse`}></div>
+        
+        {/* Themed Animation Component */}
+        <div className="relative z-10 size-48 flex items-center justify-center">
+          {game === 'dice' && (
+             <div className="preserve-3d animate-spin-slow w-24 h-24 border-2 border-primary/40 relative">
+                <div className="absolute inset-0 bg-primary/10 border border-primary/20 transform translateZ(12px)"></div>
+                <div className="absolute inset-0 bg-primary/10 border border-primary/20 transform -translateZ(12px)"></div>
+             </div>
+          )}
+          {game === 'slots' && (
+            <div className="size-32 rounded-full border-4 border-secondary/20 border-t-secondary animate-spin"></div>
+          )}
+          {game === 'mines' && (
+            <div className="grid grid-cols-3 gap-2">
+               {[...Array(9)].map((_, i) => (
+                 <div key={i} className="size-6 bg-gold/20 border border-gold/40 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }}></div>
+               ))}
+            </div>
+          )}
+          {game === 'plinko' && (
+            <div className="h-32 flex items-end gap-2">
+               {[...Array(5)].map((_, i) => (
+                 <div key={i} className="w-2 bg-accent-pink/40 animate-[float_2s_infinite]" style={{ height: `${20 + i*15}%`, animationDelay: `${i * 0.2}s` }}></div>
+               ))}
+            </div>
+          )}
+          <span className={`material-symbols-outlined absolute text-6xl ${themedContent.color} neon-text`}>{themedContent.icon}</span>
+        </div>
+      </div>
+
+      <div className="text-center space-y-4">
+        <h3 className={`text-4xl font-display font-black uppercase tracking-[0.4em] ${themedContent.color}`}>
+          {themedContent.label}
+        </h3>
+        <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">{themedContent.sub}</p>
+      </div>
+
+      <div className="w-full max-w-md space-y-2">
+        <div className="flex justify-between text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+          <span>Module_Status: Syncing</span>
+          <span>{Math.round(progress)}%</span>
+        </div>
+        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+          <div 
+            className={`h-full transition-all duration-300 ${themedContent.color.replace('text-', 'bg-')} shadow-neon`} 
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+      </div>
+      
+      <div className="text-[10px] font-mono text-gray-600 animate-pulse tracking-tighter">
+        BITSTREAM_DATA: {Array(16).fill(0).map(() => Math.floor(Math.random() * 2)).join('')}
       </div>
     </div>
   );

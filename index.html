@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" style="scroll-behavior: smooth;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,6 +41,7 @@
                         'spin-slow': 'spin 12s linear infinite',
                         'roll-fast': 'spin 0.2s linear infinite',
                         'scan': 'scan 8s linear infinite',
+                        'fade-in-up': 'fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
                     },
                     keyframes: {
                         float: {
@@ -53,6 +54,10 @@
                         scan: {
                             '0%': { transform: 'translateY(-100%)' },
                             '100%': { transform: 'translateY(100%)' }
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)', filter: 'blur(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)', filter: 'blur(0px)' }
                         }
                     }
                 }
@@ -68,6 +73,7 @@
                 linear-gradient(rgba(139, 36, 255, 0.03) 1px, transparent 1px), 
                 linear-gradient(90deg, rgba(139, 36, 255, 0.03) 1px, transparent 1px);
             background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            overflow-x: hidden;
         }
         .glass-panel {
             background: rgba(21, 13, 34, 0.6);
@@ -94,6 +100,28 @@
         ::-webkit-scrollbar-track { background: #0b0514; }
         ::-webkit-scrollbar-thumb { background: #2d1f42; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #8b24ff; }
+
+        .reveal-section {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .reveal-section.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .scroll-progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #8b24ff, #00f0ff);
+            z-index: 9999;
+            width: 0%;
+            box-shadow: 0 0 10px #8b24ff;
+            pointer-events: none;
+        }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
